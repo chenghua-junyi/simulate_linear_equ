@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>二元一次直線方程式互動學習</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .controls-section {
+            background-color: #f9fafb; /* bg-gray-50 */
+            padding: 1.5rem; /* p-6 */
+            border-radius: 0.75rem; /* rounded-xl */
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); /* shadow-lg */
+        }
+        .canvas-container {
+            border: 1px solid #e5e7eb; /* border-gray-200 */
+            border-radius: 0.75rem; /* rounded-xl */
+            overflow: hidden; 
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); /* shadow-lg */
+        }
+        canvas {
+            display: block;
+            background-color: #ffffff;
+        }
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 0.5rem; /* h-2 */
+            border-radius: 0.25rem; /* rounded-md */
+            background: #d1d5db; /* bg-gray-300 */
+            outline: none;
+            opacity: 0.7;
+            transition: opacity .2s;
+        }
+        input[type="range"]:hover {
+            opacity: 1;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 1.25rem; /* w-5 */
+            height: 1.25rem; /* h-5 */
+            border-radius: 9999px; /* rounded-full */
+            background: #3b82f6; /* bg-blue-500 */
+            cursor: pointer;
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 1.25rem; /* w-5 */
+            height: 1.25rem; /* h-5 */
+            border-radius: 9999px; /* rounded-full */
+            background: #3b82f6; /* bg-blue-500 */
+            cursor: pointer;
+            border: none;
+        }
+        .info-box {
+            background-color: #eff6ff; /* bg-blue-50 */
+            color: #1e40af; /* text-blue-700 */
+            padding: 1rem; /* p-4 */
+            border-radius: 0.5rem; /* rounded-lg */
+            margin-top: 1rem; /* mt-4 */
+        }
+        .tab-button {
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem; /* rounded-md */
+            cursor: pointer;
+            transition: background-color 0.3s, color 0.3s;
+            font-weight: 500;
+        }
+        .tab-button.active {
+            background-color: #3b82f6; /* bg-blue-500 */
+            color: white;
+        }
+        .tab-button:not(.active) {
+            background-color: #e5e7eb; /* bg-gray-200 */
+            color: #374151; /* text-gray-700 */
+        }
+        /* Modal styles */
+        .modal {
+            display: none; /* Hidden by default */
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.5); /* Dim background */
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-content {
+            background-color: #fff;
+            margin: auto;
+            padding: 20px;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
+            position: relative; /* For spinner positioning */
+        }
+        .modal-header {
+            padding-bottom: 10px;
+            border-bottom: 1px solid #e5e7eb;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .modal-title {
+            font-size: 1.25rem; /* text-xl */
+            font-weight: 600; /* font-semibold */
+            color: #1f2937; /* text-gray-800 */
+        }
+        .modal-body {
+            font-size: 0.9rem;
+            color: #374151; /* text-gray-700 */
+            line-height: 1.6;
+            max-height: 60vh;
+            overflow-y: auto;
+            white-space: pre-wrap; /* Preserve line breaks from API response */
+        }
+        .close-button {
+            color: #9ca3af; /* text-gray-400 */
+            font-size: 1.75rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+        .close-button:hover,
+        .close-button:focus {
+            color: #1f2937; /* text-gray-800 */
+        }
+        /* Loading Spinner */
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border-left-color: #3b82f6; /* blue-500 */
+            animation: spin 1s ease infinite;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: none; /* Hidden by default */
+        }
+        @keyframes spin {
+            0% { transform: translate(-50%, -50%) rotate(0deg); }
+            100% { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+        .gemini-button {
+            background-color: #2563eb; /* bg-blue-600 */
+            color: white;
+            padding: 0.5rem 1rem; /* py-2 px-4 */
+            border-radius: 0.375rem; /* rounded-md */
+            font-weight: 500; /* font-medium */
+            transition: background-color 0.3s;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem; /* space-x-2 */
+        }
+        .gemini-button:hover {
+            background-color: #1d4ed8; /* bg-blue-700 */
+        }
+        .gemini-button:disabled {
+            background-color: #9ca3af; /* bg-gray-400 */
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col items-center justify-center p-4 selection:bg-blue-200">
+
+    <div class="w-full max-w-4xl bg-white p-6 sm:p-8 rounded-xl shadow-2xl">
+        <header class="mb-6 sm:mb-8 text-center">
+            <h1 class="text-3xl sm:text-4xl font-bold text-gray-800">探索二元一次直線方程式</h1>
+            <p class="text-gray-600 mt-2 text-sm sm:text-base">透過互動調整參數，觀察直線的變化並學習相關概念。</p>
+        </header>
+
+        <div class="mb-6 flex justify-center space-x-2 sm:space-x-4">
+            <button id="tabYMXB" class="tab-button active">y = mx + b</button>
+            <button id="tabAXBYC" class="tab-button">ax + by = c</button>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="md:col-span-1 controls-section">
+                <div id="controlsYMXB">
+                    <h2 class="text-xl font-semibold text-gray-700 mb-4">調整參數 (y = mx + b)</h2>
+                    <div class="space-y-5">
+                        <div>
+                            <label for="sliderM" class="block text-sm font-medium text-gray-700">斜率 (m): <span id="valueM" class="font-bold text-blue-600">1</span></label>
+                            <input type="range" id="sliderM" min="-5" max="5" value="1" step="0.1" class="mt-1">
+                            <input type="number" id="inputM" value="1" step="0.1" class="mt-1 w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label for="sliderB" class="block text-sm font-medium text-gray-700">y軸截距 (b): <span id="valueB" class="font-bold text-blue-600">0</span></label>
+                            <input type="range" id="sliderB" min="-10" max="10" value="0" step="0.1" class="mt-1">
+                            <input type="number" id="inputB" value="0" step="0.1" class="mt-1 w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                    </div>
+                    <div id="equationDisplayYMXB" class="mt-6 text-center text-lg font-medium text-gray-700 bg-gray-200 p-3 rounded-md">
+                        y = 1x + 0
+                    </div>
+                </div>
+
+                <div id="controlsAXBYC" class="hidden">
+                    <h2 class="text-xl font-semibold text-gray-700 mb-4">調整參數 (ax + by = c)</h2>
+                    <div class="space-y-5">
+                        <div>
+                            <label for="sliderA" class="block text-sm font-medium text-gray-700">係數 (a): <span id="valueA" class="font-bold text-blue-600">1</span></label>
+                            <input type="range" id="sliderA" min="-5" max="5" value="1" step="0.1" class="mt-1">
+                             <input type="number" id="inputA" value="1" step="0.1" class="mt-1 w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label for="sliderValB" class="block text-sm font-medium text-gray-700">係數 (b): <span id="valueValB" class="font-bold text-blue-600">1</span></label>
+                            <input type="range" id="sliderValB" min="-5" max="5" value="1" step="0.1" class="mt-1">
+                            <input type="number" id="inputValB" value="1" step="0.1" class="mt-1 w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label for="sliderC" class="block text-sm font-medium text-gray-700">常數 (c): <span id="valueC" class="font-bold text-blue-600">1</span></label>
+                            <input type="range" id="sliderC" min="-10" max="10" value="1" step="0.1" class="mt-1">
+                            <input type="number" id="inputC" value="1" step="0.1" class="mt-1 w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                    </div>
+                     <div id="equationDisplayAXBYC" class="mt-6 text-center text-lg font-medium text-gray-700 bg-gray-200 p-3 rounded-md">
+                        1x + 1y = 1
+                    </div>
+                    <div id="warningAXBYC" class="mt-2 text-sm text-red-600 text-center"></div>
+                </div>
+            </div>
+
+            <div class="md:col-span-2 canvas-container">
+                <canvas id="graphCanvas"></canvas>
+                <div id="coordsDisplay" class="p-2 bg-gray-100 text-sm text-gray-700 text-center rounded-b-xl">
+                    滑鼠座標: (x, y)
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-6 sm:mt-8">
+            <h2 class="text-2xl font-semibold text-gray-700 mb-3 sm:mb-4">重點概念</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div class="info-box">
+                    <h3 class="font-bold text-lg">斜率 (Slope, m)</h3>
+                    <p class="text-sm">表示直線的傾斜程度。當 x 每增加 1 單位時，y 值的變化量。 <br>公式: m = (y₂ - y₁) / (x₂ - x₁)</p>
+                    <p class="text-sm mt-1">正斜率：直線向右上傾斜。<br>負斜率：直線向右下傾斜。<br>零斜率：水平線。<br>未定義斜率：垂直線。</p>
+                </div>
+                <div class="info-box">
+                    <h3 class="font-bold text-lg">Y軸截距 (Y-intercept, b)</h3>
+                    <p class="text-sm">直線與 Y 軸相交點的 y 座標。也就是當 x = 0 時，y 的值。</p>
+                    <p id="yInterceptDisplay" class="text-sm mt-1 font-semibold">目前 Y 截距: (0, 0)</p>
+                </div>
+                <div class="info-box">
+                    <h3 class="font-bold text-lg">X軸截距 (X-intercept)</h3>
+                    <p class="text-sm">直線與 X 軸相交點的 x 座標。也就是當 y = 0 時，x 的值。</p>
+                    <p id="xInterceptDisplay" class="text-sm mt-1 font-semibold">目前 X 截距: (0, 0)</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-6 sm:mt-8 pt-6 border-t border-gray-200">
+            <h2 class="text-2xl font-semibold text-gray-700 mb-4 text-center">✨ AI 輔助學習 ✨</h2>
+            <div class="flex flex-col sm:flex-row justify-center items-center gap-4">
+                <button id="explainEquationBtn" class="gemini-button">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-chat-left-text-fill" viewBox="0 0 16 16">
+                        <path d="M0 2a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4.414a1 1 0 0 0-.707.293L.854 15.146A.5.5 0 0 1 0 14.793V2zm3.5 1a.5.5 0 0 0 0 1h9a.5.5 0 0 0 0-1h-9zm0 2.5a.5.5 0 0 0 0 1h9a.5.5 0 0 0 0-1h-9zm0 2.5a.5.5 0 0 0 0 1h5a.5.5 0 0 0 0-1h-5z"/>
+                    </svg>
+                    方程式解說
+                </button>
+                <button id="realWorldAppBtn" class="gemini-button">
+                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-lightbulb-fill" viewBox="0 0 16 16">
+                        <path d="M2 6a6 6 0 1 1 10.174 4.31c-.203.196-.359.4-.453.619l-.762 1.769A.5.5 0 0 1 10.5 13h-5a.5.5 0 0 1-.46-.302l-.761-1.77a1.964 1.964 0 0 0-.453-.618A5.984 5.984 0 0 1 2 6zm3 8.5a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1l-.224.447a1 1 0 0 1-.894.553H6.618a1 1 0 0 1-.894-.553L5.5 15a.5.5 0 0 1-.5-.5z"/>
+                    </svg>
+                    真實世界應用
+                </button>
+            </div>
+        </div>
+
+         <footer class="mt-8 text-center text-sm text-gray-500">
+            <p>&copy; 2024 互動學習. All rights reserved.</p>
+        </footer>
+    </div>
+
+    <div id="geminiModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle" class="modal-title">AI 回應</h3>
+                <span class="close-button" id="closeModalBtn">&times;</span>
+            </div>
+            <div class="spinner" id="loadingSpinner"></div>
+            <div id="modalBody" class="modal-body">
+                </div>
+        </div>
+    </div>
+
+
+    <script>
+        const canvas = document.getElementById('graphCanvas');
+        const ctx = canvas.getContext('2d');
+        const coordsDisplay = document.getElementById('coordsDisplay');
+
+        // Sliders and value displays for y = mx + b
+        const sliderM = document.getElementById('sliderM');
+        const valueM = document.getElementById('valueM');
+        const inputM = document.getElementById('inputM');
+        const sliderB = document.getElementById('sliderB');
+        const valueB = document.getElementById('valueB');
+        const inputB = document.getElementById('inputB');
+        const equationDisplayYMXB = document.getElementById('equationDisplayYMXB');
+
+        // Sliders and value displays for ax + by = c
+        const sliderA = document.getElementById('sliderA');
+        const valueA = document.getElementById('valueA');
+        const inputA = document.getElementById('inputA');
+        const sliderValB = document.getElementById('sliderValB'); 
+        const valueValB = document.getElementById('valueValB');
+        const inputValB = document.getElementById('inputValB');
+        const sliderC = document.getElementById('sliderC');
+        const valueC = document.getElementById('valueC');
+        const inputC = document.getElementById('inputC');
+        const equationDisplayAXBYC = document.getElementById('equationDisplayAXBYC');
+        const warningAXBYC = document.getElementById('warningAXBYC');
+
+        // Tabs
+        const tabYMXB = document.getElementById('tabYMXB');
+        const tabAXBYC = document.getElementById('tabAXBYC');
+        const controlsYMXB = document.getElementById('controlsYMXB');
+        const controlsAXBYC = document.getElementById('controlsAXBYC');
+
+        // Intercept displays
+        const yInterceptDisplay = document.getElementById('yInterceptDisplay');
+        const xInterceptDisplay = document.getElementById('xInterceptDisplay');
+
+        // Gemini API elements
+        const explainEquationBtn = document.getElementById('explainEquationBtn');
+        const realWorldAppBtn = document.getElementById('realWorldAppBtn');
+        const geminiModal = document.getElementById('geminiModal');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalBody = document.getElementById('modalBody');
+        const closeModalBtn = document.getElementById('closeModalBtn');
+        const loadingSpinner = document.getElementById('loadingSpinner');
+
+        let currentMode = 'ymxb'; 
+
+        let m = parseFloat(sliderM.value);
+        let b_val = parseFloat(sliderB.value); 
+        let a_coeff = parseFloat(sliderA.value);
+        let b_coeff = parseFloat(sliderValB.value);
+        let c_coeff = parseFloat(sliderC.value);
+
+        let scale = 20; 
+        let originX, originY;
+
+        function setupCanvas() {
+            const container = canvas.parentElement;
+            const availableWidth = container.clientWidth;
+            const canvasSize = Math.min(availableWidth, 500); 
+            canvas.width = canvasSize;
+            canvas.height = canvasSize;
+            originX = canvas.width / 2;
+            originY = canvas.height / 2;
+            scale = Math.min(canvas.width, canvas.height) / 20; 
+            drawGraph();
+        }
+
+        function drawGrid() {
+            ctx.beginPath();
+            ctx.strokeStyle = '#e5e7eb'; 
+            ctx.lineWidth = 0.5;
+            for (let x = -Math.floor(originX / scale); x * scale <= originX; x++) {
+                const canvasX = originX + x * scale;
+                ctx.moveTo(canvasX, 0);
+                ctx.lineTo(canvasX, canvas.height);
+            }
+            for (let y = -Math.floor(originY / scale); y * scale <= originY; y++) {
+                const canvasY = originY + y * scale;
+                ctx.moveTo(0, canvasY);
+                ctx.lineTo(canvas.width, canvasY);
+            }
+            ctx.stroke();
+        }
+
+        function drawAxes() {
+            ctx.beginPath();
+            ctx.strokeStyle = '#6b7280'; 
+            ctx.lineWidth = 1.5;
+            ctx.moveTo(0, originY);
+            ctx.lineTo(canvas.width, originY);
+            ctx.moveTo(originX, 0);
+            ctx.lineTo(originX, canvas.height);
+            ctx.stroke();
+
+            ctx.fillStyle = '#374151';
+            ctx.font = `${0.6 * scale}px Inter`; 
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('X', canvas.width - (0.7*scale), originY - (0.7*scale));
+            ctx.fillText('Y', originX + (0.7*scale), 0 + (0.7*scale));
+            ctx.fillText('0', originX - (0.5*scale), originY + (0.7*scale));
+
+            const tickLength = 0.2 * scale;
+            const numDistance = 0.5 * scale; 
+
+            for (let i = -Math.floor(originX / scale); i <= Math.floor((canvas.width - originX) / scale); i++) {
+                if (i === 0) continue;
+                const xPos = originX + i * scale;
+                ctx.moveTo(xPos, originY - tickLength / 2);
+                ctx.lineTo(xPos, originY + tickLength / 2);
+                if (i % (Math.floor(scale/10) > 0 ? Math.floor(scale/10) * 2 : 2) === 0) { 
+                     ctx.fillText(i.toString(), xPos, originY + tickLength + numDistance);
+                }
+            }
+            for (let i = -Math.floor(originY / scale); i <= Math.floor((canvas.height - originY) / scale); i++) {
+                if (i === 0) continue;
+                const yPos = originY - i * scale; 
+                ctx.moveTo(originX - tickLength / 2, yPos);
+                ctx.lineTo(originX + tickLength / 2, yPos);
+                if (i % (Math.floor(scale/10) > 0 ? Math.floor(scale/10) * 2 : 2) === 0) {
+                    ctx.fillText(i.toString(), originX - tickLength - numDistance, yPos);
+                }
+            }
+            ctx.stroke();
+        }
+
+        function drawLineYMXB(m_param, b_param) {
+            ctx.beginPath();
+            ctx.strokeStyle = '#3b82f6'; 
+            ctx.lineWidth = 2;
+            const x_math_min = (0 - originX) / scale; 
+            const x_math_max = (canvas.width - originX) / scale; 
+            const y1_math = m_param * x_math_min + b_param;
+            const y2_math = m_param * x_math_max + b_param;
+            const x1_canvas = originX + x_math_min * scale; 
+            const y1_canvas = originY - y1_math * scale;
+            const x2_canvas = originX + x_math_max * scale; 
+            const y2_canvas = originY - y2_math * scale;
+            ctx.moveTo(x1_canvas, y1_canvas);
+            ctx.lineTo(x2_canvas, y2_canvas);
+            ctx.stroke();
+            updateInterceptsYMXB(m_param, b_param);
+        }
+
+        function drawLineAXBYC(a, b, c) {
+            ctx.beginPath();
+            ctx.strokeStyle = '#10b981'; 
+            ctx.lineWidth = 2;
+            warningAXBYC.textContent = '';
+
+            if (a === 0 && b === 0) {
+                if (c === 0) {
+                    warningAXBYC.textContent = '0x + 0y = 0: 此方程式代表整個平面。';
+                } else {
+                    warningAXBYC.textContent = '0x + 0y = c (c≠0): 此方程式無解（沒有圖形）。';
+                }
+                ctx.stroke(); 
+                updateInterceptsAXBYC(a,b,c); 
+                return;
+            }
+
+            const x_math_min = (0 - originX) / scale;
+            const x_math_max = (canvas.width - originX) / scale;
+            const y_math_min = (originY - canvas.height) / scale; 
+            const y_math_max = (originY - 0) / scale; 
+
+            let p1, p2;
+
+            if (b !== 0) { 
+                const y1_math = (c - a * x_math_min) / b;
+                const y2_math = (c - a * x_math_max) / b;
+                p1 = { x: x_math_min, y: y1_math };
+                p2 = { x: x_math_max, y: y2_math };
+            } else { 
+                const x_val_math = c / a;
+                p1 = { x: x_val_math, y: y_math_min };
+                p2 = { x: x_val_math, y: y_math_max };
+            }
+            
+            ctx.moveTo(originX + p1.x * scale, originY - p1.y * scale);
+            ctx.lineTo(originX + p2.x * scale, originY - p2.y * scale);
+            ctx.stroke();
+            updateInterceptsAXBYC(a, b, c);
+        }
+
+        function updateEquationDisplay() {
+            if (currentMode === 'ymxb') {
+                const b_display = b_val >= 0 ? `+ ${b_val.toFixed(1)}` : `- ${Math.abs(b_val).toFixed(1)}`;
+                equationDisplayYMXB.textContent = `y = ${m.toFixed(1)}x ${b_display}`;
+            } else {
+                const a_term = `${a_coeff.toFixed(1)}x`;
+                const b_term = b_coeff >= 0 ? `+ ${b_coeff.toFixed(1)}y` : `- ${Math.abs(b_coeff).toFixed(1)}y`;
+                equationDisplayAXBYC.textContent = `${a_term} ${b_term} = ${c_coeff.toFixed(1)}`;
+            }
+        }
+        
+        function updateInterceptsYMXB(m_param, b_param) {
+            yInterceptDisplay.textContent = `目前 Y 截距: (0, ${b_param.toFixed(2)})`;
+            if (m_param !== 0) {
+                const x_int = -b_param / m_param;
+                xInterceptDisplay.textContent = `目前 X 截距: (${x_int.toFixed(2)}, 0)`;
+            } else { 
+                if (b_param === 0) { 
+                    xInterceptDisplay.textContent = `目前 X 截距: 整條 X 軸`;
+                } else { 
+                    xInterceptDisplay.textContent = `目前 X 截距: 無 (平行於X軸)`;
+                }
+            }
+        }
+
+        function updateInterceptsAXBYC(a, b, c_param) {
+            if (b !== 0) {
+                const y_int_val = c_param / b;
+                yInterceptDisplay.textContent = `目前 Y 截距: (0, ${y_int_val.toFixed(2)})`;
+            } else { 
+                if (a === 0) { 
+                     yInterceptDisplay.textContent = `目前 Y 截距: 未定義`;
+                } else { 
+                    yInterceptDisplay.textContent = `目前 Y 截距: 無 (垂直線)`;
+                }
+            }
+            if (a !== 0) {
+                const x_int_val = c_param / a;
+                xInterceptDisplay.textContent = `目前 X 截距: (${x_int_val.toFixed(2)}, 0)`;
+            } else { 
+                 if (b === 0) { 
+                     xInterceptDisplay.textContent = `目前 X 截距: 未定義`;
+                } else { 
+                    xInterceptDisplay.textContent = `目前 X 截距: 無 (水平線)`;
+                }
+            }
+            if (a === 0 && b !== 0 && c_param === 0) { 
+                xInterceptDisplay.textContent = `目前 X 截距: 整條 X 軸`;
+                yInterceptDisplay.textContent = `目前 Y 截距: (0, 0)`;
+            }
+            if (b === 0 && a !== 0 && c_param === 0) { 
+                yInterceptDisplay.textContent = `目前 Y 截距: 整條 Y 軸`;
+                xInterceptDisplay.textContent = `目前 X 截距: (0, 0)`;
+            }
+        }
+
+        function drawGraph() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height); 
+            drawGrid();
+            drawAxes();
+            if (currentMode === 'ymxb') {
+                drawLineYMXB(m, b_val);
+            } else {
+                drawLineAXBYC(a_coeff, b_coeff, c_coeff);
+            }
+            updateEquationDisplay();
+        }
+        
+        function syncSliderInput(slider, input, isFloat = true) {
+            const val = isFloat ? parseFloat(input.value) : parseInt(input.value);
+            if (!isNaN(val)) {
+                slider.value = val;
+                 // Manually trigger input event on slider if needed by other listeners,
+                 // but here we directly call the update functions.
+            }
+        }
+
+        function syncInputSlider(input, sliderValue, isFloat = true) {
+             input.value = isFloat ? parseFloat(sliderValue).toFixed(1) : parseInt(sliderValue);
+        }
+
+
+        function updateYMXBParams() {
+            // Prioritize input field if it's a valid number, otherwise use slider
+            let newM = parseFloat(inputM.value);
+            if (isNaN(newM)) newM = parseFloat(sliderM.value); else sliderM.value = newM;
+            m = newM;
+            valueM.textContent = m.toFixed(1);
+            inputM.value = m.toFixed(1);
+
+
+            let newBVal = parseFloat(inputB.value);
+            if (isNaN(newBVal)) newBVal = parseFloat(sliderB.value); else sliderB.value = newBVal;
+            b_val = newBVal;
+            valueB.textContent = b_val.toFixed(1);
+            inputB.value = b_val.toFixed(1);
+            
+            drawGraph();
+        }
+        sliderM.addEventListener('input', (e) => { syncInputSlider(inputM, e.target.value); updateYMXBParams(); });
+        inputM.addEventListener('input', () => { updateYMXBParams(); }); // Slider syncs inside updateYMXBParams
+        sliderB.addEventListener('input', (e) => { syncInputSlider(inputB, e.target.value); updateYMXBParams(); });
+        inputB.addEventListener('input', () => { updateYMXBParams(); });
+
+
+        function updateAXBYCParams() {
+            let newA = parseFloat(inputA.value);
+            if(isNaN(newA)) newA = parseFloat(sliderA.value); else sliderA.value = newA;
+            a_coeff = newA;
+            valueA.textContent = a_coeff.toFixed(1);
+            inputA.value = a_coeff.toFixed(1);
+
+            let newB = parseFloat(inputValB.value);
+            if(isNaN(newB)) newB = parseFloat(sliderValB.value); else sliderValB.value = newB;
+            b_coeff = newB;
+            valueValB.textContent = b_coeff.toFixed(1);
+            inputValB.value = b_coeff.toFixed(1);
+
+            let newC = parseFloat(inputC.value);
+            if(isNaN(newC)) newC = parseFloat(sliderC.value); else sliderC.value = newC;
+            c_coeff = newC;
+            valueC.textContent = c_coeff.toFixed(1);
+            inputC.value = c_coeff.toFixed(1);
+
+            drawGraph();
+        }
+
+        sliderA.addEventListener('input', (e) => { syncInputSlider(inputA, e.target.value); updateAXBYCParams(); });
+        inputA.addEventListener('input', () => { updateAXBYCParams(); });
+        sliderValB.addEventListener('input', (e) => { syncInputSlider(inputValB, e.target.value); updateAXBYCParams(); });
+        inputValB.addEventListener('input', () => { updateAXBYCParams(); });
+        sliderC.addEventListener('input', (e) => { syncInputSlider(inputC, e.target.value); updateAXBYCParams(); });
+        inputC.addEventListener('input', () => { updateAXBYCParams(); });
+        
+        tabYMXB.addEventListener('click', () => {
+            currentMode = 'ymxb';
+            tabYMXB.classList.add('active');
+            tabAXBYC.classList.remove('active');
+            controlsYMXB.classList.remove('hidden');
+            controlsAXBYC.classList.add('hidden');
+            warningAXBYC.textContent = ''; 
+            drawGraph();
+        });
+
+        tabAXBYC.addEventListener('click', () => {
+            currentMode = 'axbyc';
+            tabAXBYC.classList.add('active');
+            tabYMXB.classList.remove('active');
+            controlsAXBYC.classList.remove('hidden');
+            controlsYMXB.classList.add('hidden');
+            drawGraph();
+        });
+
+        canvas.addEventListener('mousemove', (event) => {
+            const rect = canvas.getBoundingClientRect();
+            const x_canvas = event.clientX - rect.left;
+            const y_canvas = event.clientY - rect.top;
+            const x_math = (x_canvas - originX) / scale;
+            const y_math = (originY - y_canvas) / scale;
+            coordsDisplay.textContent = `滑鼠座標: (${x_math.toFixed(2)}, ${y_math.toFixed(2)})`;
+        });
+
+        canvas.addEventListener('mouseleave', () => {
+            coordsDisplay.textContent = '滑鼠座標: (x, y)';
+        });
+        
+        // --- Gemini API Integration ---
+        function showModal(title, content) {
+            modalTitle.textContent = title;
+            modalBody.innerHTML = content; // Use innerHTML to render line breaks if any
+            geminiModal.style.display = 'flex';
+        }
+
+        function hideModal() {
+            geminiModal.style.display = 'none';
+            modalBody.innerHTML = ''; // Clear content
+        }
+
+        closeModalBtn.addEventListener('click', hideModal);
+        window.addEventListener('click', (event) => {
+            if (event.target === geminiModal) {
+                hideModal();
+            }
+        });
+        
+        async function callGeminiAPI(prompt, buttonElement) {
+            loadingSpinner.style.display = 'block';
+            modalBody.innerHTML = ''; // Clear previous content
+            buttonElement.disabled = true;
+
+            const apiKey = ""; // Per instructions, leave empty for Canvas to handle
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+            
+            let chatHistory = [{ role: "user", parts: [{ text: prompt }] }];
+            const payload = { contents: chatHistory };
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    console.error("Gemini API Error:", errorData);
+                    return `API 請求失敗: ${response.status} ${response.statusText}. <br><br>詳細錯誤: ${JSON.stringify(errorData.error?.message || errorData)}`;
+                }
+
+                const result = await response.json();
+                
+                if (result.candidates && result.candidates.length > 0 &&
+                    result.candidates[0].content && result.candidates[0].content.parts &&
+                    result.candidates[0].content.parts.length > 0) {
+                    return result.candidates[0].content.parts[0].text.replace(/\n/g, '<br>'); // Replace newlines with <br> for HTML display
+                } else if (result.promptFeedback && result.promptFeedback.blockReason) {
+                     console.warn("Gemini API Prompt Feedback:", result.promptFeedback);
+                     let reasonText = result.promptFeedback.blockReason;
+                     if (result.promptFeedback.safetyRatings) {
+                         reasonText += ` (類別: ${result.promptFeedback.safetyRatings.map(r => r.category).join(', ')})`;
+                     }
+                     return `您的請求可能包含敏感內容，已被模型拒絕。原因: ${reasonText}`;
+                } else {
+                    console.error("Gemini API - Unexpected response structure:", result);
+                    return "無法從 API 獲取有效的回應。請檢查瀏覽器控制台以獲取更多資訊。";
+                }
+            } catch (error) {
+                console.error("Error calling Gemini API:", error);
+                return `呼叫 API 時發生客戶端錯誤: ${error.message}`;
+            } finally {
+                loadingSpinner.style.display = 'none';
+                buttonElement.disabled = false;
+            }
+        }
+
+        explainEquationBtn.addEventListener('click', async () => {
+            let prompt = "";
+            let title = "✨ 方程式解說";
+            if (currentMode === 'ymxb') {
+                prompt = `請用繁體中文，以友善且易於理解的方式，詳細解釋二元一次直線方程式 y = ${m.toFixed(1)}x ${b_val >= 0 ? '+' : ''} ${b_val.toFixed(1)} 的主要特性。請包含以下幾點：\n1. 斜率 (${m.toFixed(1)}) 的意義是什麼？它如何影響線的陡峭程度和方向（上升/下降）？\n2. Y軸截距 (${b_val.toFixed(1)}) 的意義是什麼？它在圖形上代表哪一點？\n3. X軸截距是多少？如何計算？（如果直線平行於X軸，請說明）\n4. 這條線是水平線、垂直線，還是斜線？\n請用條列或分段的方式清楚說明。`;
+            } else { // axbyc mode
+                prompt = `請用繁體中文，以友善且易於理解的方式，詳細解釋二元一次直線方程式 ${a_coeff.toFixed(1)}x ${b_coeff >= 0 ? '+' : ''} ${b_coeff.toFixed(1)}y = ${c_coeff.toFixed(1)} 的主要特性。請包含以下幾點：\n1. 如何從此方程式判斷直線的斜率？斜率是多少？（如果適用，例如非垂直線）\n2. Y軸截距是多少？它在圖形上代表哪一點？如何計算？（如果直線平行於Y軸，請說明）\n3. X軸截距是多少？它在圖形上代表哪一點？如何計算？（如果直線平行於X軸，請說明）\n4. 這條線是水平線、垂直線，還是斜線？\n5. 如果 a 或 b 等於 0，方程式代表什麼特殊情況？\n請用條列或分段的方式清楚說明。`;
+                 if (a_coeff === 0 && b_coeff === 0) {
+                    showModal(title, "此方程式 (0x + 0y = c) 比較特殊，AI 解說功能不適用於此情況。請參考控制面板上的提示訊息。");
+                    return;
+                }
+            }
+            showModal(title, ""); // Show modal with title, spinner will be active
+            const explanation = await callGeminiAPI(prompt, explainEquationBtn);
+            modalBody.innerHTML = explanation; // Update modal body once content is fetched
+        });
+
+        realWorldAppBtn.addEventListener('click', async () => {
+            let prompt = "";
+            let title = "✨ 真實世界應用";
+            if (currentMode === 'ymxb') {
+                prompt = `請用繁體中文，提供一個簡短（約50-100字）且有趣的真實世界應用範例，這個情境可以用二元一次直線方程式 y = ${m.toFixed(1)}x ${b_val >= 0 ? '+' : ''} ${b_val.toFixed(1)} 來描述。請清楚說明在此情境中，x 和 y 各自代表什麼物理量或概念，以及斜率 (${m.toFixed(1)}) 和 Y軸截距 (${b_val.toFixed(1)}) 的實際意義。`;
+            } else { // axbyc mode
+                prompt = `請用繁體中文，提供一個簡短（約50-100字）且有趣的真實世界應用範例，這個情境可以用二元一次直線方程式 ${a_coeff.toFixed(1)}x ${b_coeff >= 0 ? '+' : ''} ${b_coeff.toFixed(1)}y = ${c_coeff.toFixed(1)} 來描述。請清楚說明在此情境中，x 和 y 各自代表什麼物理量或概念，並簡述此方程式如何描述該情境的關係。`;
+                 if (a_coeff === 0 && b_coeff === 0) {
+                    showModal(title, "此方程式 (0x + 0y = c) 比較特殊，AI 真實世界應用功能不適用於此情況。請參考控制面板上的提示訊息。");
+                    return;
+                }
+            }
+            showModal(title, "");
+            const application = await callGeminiAPI(prompt, realWorldAppBtn);
+            modalBody.innerHTML = application;
+        });
+
+
+        // Initial setup
+        window.addEventListener('load', setupCanvas);
+        window.addEventListener('resize', setupCanvas); 
+
+        updateYMXBParams();
+        updateAXBYCParams(); 
+        if (currentMode === 'ymxb') {
+             controlsYMXB.classList.remove('hidden');
+             controlsAXBYC.classList.add('hidden');
+             tabYMXB.classList.add('active');
+             tabAXBYC.classList.remove('active');
+        } else {
+            controlsYMXB.classList.add('hidden');
+            controlsAXBYC.classList.remove('hidden');
+            tabYMXB.classList.remove('active');
+            tabAXBYC.classList.add('active');
+        }
+        drawGraph(); 
+
+    </script>
+</body>
+</html>
